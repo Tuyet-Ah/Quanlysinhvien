@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Sinh Viên</title>
+    <style>
+        /* CSS: Giao diện cơ bản */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f4f9; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h2 { text-align: center; color: #333; }
+        
+        /* Form Styles */
+        .form-group { margin-bottom: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .input-control { display: flex; flex-direction: column; }
+        label { margin-bottom: 5px; font-weight: bold; }
+        input { padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        
+        .btn-group { text-align: center; margin-bottom: 20px; }
+        button { padding: 10px 20px; cursor: pointer; border: none; border-radius: 4px; font-weight: bold; color: white; margin: 5px; }
+        .btn-add { background-color: #28a745; }
+        .btn-update { background-color: #ffc107; color: #000; display: none; } /* Mặc định ẩn nút cập nhật */
+        .btn-cancel { background-color: #6c757d; display: none; }
+
+        /* Table Styles */
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #007bff; color: white; }
+        tr:hover { background-color: #f1f1f1; }
+        
+        .action-btn { padding: 5px 10px; font-size: 0.9em; margin-right: 5px; }
+        .edit-btn { background-color: #ffc107; color: black; }
+        .delete-btn { background-color: #dc3545; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Quản Lý Thông Tin Sinh Viên</h2>
+
+    <div id="studentForm">
+        <div class="form-group">
+            <div class="input-control">
+                <label for="studentId">Mã SV</label>
+                <input type="text" id="studentId" placeholder="Nhập mã SV (VD: B21DCCN001)">
+            </div>
+            <div class="input-control">
+                <label for="fullName">Họ và Tên</label>
+                <input type="text" id="fullName" placeholder="Nhập họ tên">
+            </div>
+            <div class="input-control">
+                <label for="dob">Ngày sinh</label>
+                <input type="date" id="dob">
+            </div>
+            <div class="input-control">
+                <label for="className">Lớp</label>
+                <input type="text" id="className" placeholder="VD: D21CQCN01">
+            </div>
+            <div class="input-control">
+                <label for="gpa">Điểm GPA</label>
+                <input type="number" id="gpa" step="0.01" min="0" max="4" placeholder="Thang 4.0">
+            </div>
+        </div>
+        <div class="btn-group">
+            <button class="btn-add" onclick="manager.handleAdd()">Thêm Sinh Viên</button>
+            <button class="btn-update" onclick="manager.handleUpdate()">Cập nhật</button>
+            <button class="btn-cancel" onclick="manager.resetForm()">Hủy</button>
+        </div>
+    </div>
+
+    <table id="studentTable">
+        <thead>
+            <tr>
+                <th>Mã SV</th>
+                <th>Họ và Tên</th>
+                <th>Ngày Sinh</th>
+                <th>Lớp</th>
+                <th>GPA</th>
+                <th>Hành động</th>
+            </tr>
+        </thead>
+        <tbody>
+            </tbody>
+    </table>
+</div>
+
+<script>
+    /**
+     * Lớp (Class) Sinh Viên
+     * Yêu cầu: Có thuộc tính và phương thức cập nhật
+     */
+    class Student {
+        constructor(id, name, dob, className, gpa) {
+            this.id = id;
+            this.name = name;
+            this.dob = dob;
+            this.className = className;
+            this.gpa = gpa;
+        }
+
+        // Phương thức cập nhật thông tin
+        updateInfo(name, dob, className, gpa) {
+            this.name = name;
+            this.dob = dob;
+            this.className = className;
+            this.gpa = gpa;
+        }
+    }
+
+    /**
+     * Lớp Quản Lý (Logic chính)
+     */
+    class StudentManager {
+        constructor() {
+            this.students = []; // Mảng chứa danh sách sinh viên
+            this.editingId = null; // Theo dõi xem đang sửa sinh viên nào
+        }
+
+        // Lấy dữ liệu từ Form
+        getFormData() {
+            return {
+                id: document.getElementById('studentId').value.trim(),
+                name: document.getElementById('fullName').value.trim(),
+                dob: document.getElementById('dob').value,
+                className: document.getElementById('className').value.trim(),
+                gpa: document.getElementById('gpa').value
+            };
+        }
+
+        // Xử lý nút Thêm
+        handleAdd() {
+            const data = this.getFormData();
+
+            // Validate cơ bản
+            if (!data.id || !data.name || !data.dob || !data.className || !data.gpa) {
+                alert("Vui lòng điền đầy đủ thông tin!");
+                return;
+            }
+
+            // Kiểm tra trùng mã SV
+            if (this.students.some(s => s.id === data.id)) {
+                alert("Mã sinh viên đã tồn tại!");
+                return;
+            }
+
+            // Tạo đối tượng Student mới và thêm vào danh sách
+            const newStudent = new Student(data.id, data.name, data.dob, data.className, data.gpa);
+            this.students.push(newStudent);
+            
+            this.renderTable();
+            this.resetForm();
+        }
+
+        // Xử lý khi nhấn nút Sửa trên bảng
+        startEdit(id) {
+            const student = this.students.find(s => s.id === id);
+            if (!student) return;
+
+            // Đưa dữ liệu lên form
+            document.getElementById('studentId').value = student.id;
+            document.getElementById('fullName').value = student.name;
+            document.getElementById('dob').value = student.dob;
+            document.getElementById('className').value = student.className;
+            document.getElementById('gpa').value = student.gpa;
+
+            // Khóa ô Mã SV (thường mã định danh không cho sửa)
+            document.getElementById('studentId').disabled = true;
+
+            // Đổi trạng thái nút bấm
+            document.querySelector('.btn-add').style.display = 'none';
+            document.querySelector('.btn-update').style.display = 'inline-block';
+            document.querySelector('.btn-cancel').style.display = 'inline-block';
+            
+            this.editingId = id;
+        }
+
+        // Xử lý nút Cập Nhật
+        handleUpdate() {
+            const data = this.getFormData();
+            const student = this.students.find(s => s.id === this.editingId);
+
+            if (student) {
+                // Gọi phương thức updateInfo của đối tượng Student (theo yêu cầu đề bài)
+                student.updateInfo(data.name, data.dob, data.className, data.gpa);
+                
+                this.renderTable();
+                this.resetForm();
+                alert("Cập nhật thành công!");
+            }
+        }
+
+        // Xử lý xóa (bổ sung thêm cho đầy đủ chức năng)
+        handleDelete(id) {
+            if (confirm("Bạn có chắc chắn muốn xóa sinh viên này?")) {
+                this.students = this.students.filter(s => s.id !== id);
+                this.renderTable();
+            }
+        }
+
+        // Reset form về trạng thái ban đầu
+        resetForm() {
+            document.getElementById('studentId').value = '';
+            document.getElementById('fullName').value = '';
+            document.getElementById('dob').value = '';
+            document.getElementById('className').value = '';
+            document.getElementById('gpa').value = '';
+            
+            document.getElementById('studentId').disabled = false;
+            this.editingId = null;
+
+            document.querySelector('.btn-add').style.display = 'inline-block';
+            document.querySelector('.btn-update').style.display = 'none';
+            document.querySelector('.btn-cancel').style.display = 'none';
+        }
+
+        // Hiển thị dữ liệu ra bảng
+        renderTable() {
+            const tbody = document.querySelector('#studentTable tbody');
+            tbody.innerHTML = '';
+
+            this.students.forEach(student => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${student.id}</td>
+                    <td>${student.name}</td>
+                    <td>${this.formatDate(student.dob)}</td>
+                    <td>${student.className}</td>
+                    <td>${student.gpa}</td>
+                    <td>
+                        <button class="action-btn edit-btn" onclick="manager.startEdit('${student.id}')">Sửa</button>
+                        <button class="action-btn delete-btn" onclick="manager.handleDelete('${student.id}')">Xóa</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        // Helper: Format ngày tháng cho đẹp
+        formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('vi-VN');
+        }
+    }
+
+    // Khởi tạo đối tượng quản lý
+    const manager = new StudentManager();
+</script>
+
+</body>
+</html>
